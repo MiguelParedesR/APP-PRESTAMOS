@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="max-w-md space-y-6">
     <div class="space-y-2">
       <h2 class="text-2xl font-semibold text-slate-900">Ingreso a perfil</h2>
@@ -8,16 +8,26 @@
     <Card>
       <form class="space-y-4" @submit.prevent="handleSubmit">
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-600">DNI o correo</label>
+          <label class="text-sm uppercase tracking-wide text-slate-600" for="login-identifier">
+            DNI o correo
+          </label>
           <input
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            id="login-identifier"
+            class="input-field mt-2"
             type="text"
+            name="identifier"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="go"
             placeholder="DNI o correo"
+            aria-describedby="login-helper"
           />
+          <p id="login-helper" class="mt-2 text-sm text-slate-500">
+            Usa tu DNI o correo registrado para continuar.
+          </p>
         </div>
-        <button class="w-full rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white">
-          Continuar
-        </button>
+        <button type="submit" class="btn btn-primary w-full">Continuar</button>
       </form>
     </Card>
   </section>

@@ -1,5 +1,5 @@
-﻿<script setup>
-import { computed, onMounted, ref } from 'vue';
+<script setup>
+import { computed, onMounted, ref, watch } from 'vue';
 import gsap from 'gsap';
 
 const props = defineProps({
@@ -9,6 +9,7 @@ const props = defineProps({
 });
 
 const barRef = ref(null);
+const prefersReduced = ref(false);
 
 const percentage = computed(() => {
   if (props.max <= 0) return 0;
@@ -17,12 +18,26 @@ const percentage = computed(() => {
 
 const displayPercent = computed(() => Math.round(percentage.value));
 
+const updateBar = (targetWidth, animate = true) => {
+  if (!barRef.value) return;
+  if (prefersReduced.value || !animate) {
+    gsap.set(barRef.value, { width: targetWidth });
+    return;
+  }
+
+  gsap.to(barRef.value, {
+    width: targetWidth,
+    duration: 0.4,
+    ease: 'power2.out'
+  });
+};
+
 onMounted(() => {
   if (!barRef.value) return;
+  prefersReduced.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const targetWidth = `${percentage.value}%`;
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (prefersReduced) {
+  if (prefersReduced.value) {
     gsap.set(barRef.value, { width: targetWidth });
     return;
   }
@@ -33,6 +48,10 @@ onMounted(() => {
     duration: 0.5,
     ease: 'power2.out'
   });
+});
+
+watch(percentage, (value) => {
+  updateBar(`${value}%`);
 });
 </script>
 

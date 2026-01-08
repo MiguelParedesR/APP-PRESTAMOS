@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="space-y-6">
     <div>
       <h2 class="text-2xl font-semibold text-slate-900">Perfil</h2>
@@ -11,6 +11,9 @@
       </Card>
       <Card title="Conducta">
         <p class="text-sm text-slate-600">Espacio reservado para reputacion y reglas.</p>
+      </Card>
+      <Card title="Actividad reciente">
+        <p class="text-sm text-slate-600">Aun no hay eventos registrados en tu perfil.</p>
       </Card>
     </div>
   </section>

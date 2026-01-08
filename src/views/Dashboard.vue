@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="space-y-6">
     <div class="space-y-2">
       <h2 class="text-2xl font-semibold text-slate-900">Panel de conducta</h2>
@@ -11,17 +11,17 @@
           <span class="text-sm text-slate-700">{{ estadoConfig.label }}</span>
           <span :class="estadoConfig.badgeClass">{{ estadoConfig.badge }}</span>
         </div>
-        <p class="mt-3 text-xs text-slate-500">{{ estadoConfig.detail }}</p>
+        <p class="mt-3 text-sm text-slate-500">{{ estadoConfig.detail }}</p>
       </Card>
 
       <Card title="Nivel actual">
         <p class="text-3xl font-semibold text-slate-900">{{ nivel.label }}</p>
-        <p class="mt-2 text-xs text-slate-500">{{ nivel.descripcion }}</p>
+        <p class="mt-2 text-sm text-slate-500">{{ nivel.descripcion }}</p>
       </Card>
 
       <Card title="Progreso de conducta">
         <ProgressBar :value="state.progresoConducta" :max="100" label="Progreso" />
-        <p class="mt-3 text-xs text-slate-500">Avance registrado. Historial en formacion.</p>
+        <p class="mt-3 text-sm text-slate-500">Avance registrado. Historial en formacion.</p>
       </Card>
     </div>
 
@@ -30,19 +30,19 @@
         <p class="text-sm text-slate-600">{{ estadoConfig.mensaje }}</p>
       </Card>
 
-      <Card title="Simulacion referencial" :class="{ 'opacity-60 pointer-events-none': isFrozen }">
+      <Card title="Simulacion referencial" :class="{ 'opacity-70': isFrozen }">
         <div class="space-y-3">
           <div class="flex items-center justify-between text-sm text-slate-600">
             <span>Estado</span>
             <span class="font-semibold text-slate-800">{{ simulacionEstado }}</span>
           </div>
-          <p class="text-xs text-slate-500">Rango indicativo: S/ 300 - S/ 1200.</p>
-          <p class="text-xs text-slate-500">
+          <p class="text-sm text-slate-500">Rango indicativo: S/ 300 - S/ 1200.</p>
+          <p class="text-sm text-slate-500">
             Segun tu estado actual, el sistema aun no habilita simulaciones finales.
           </p>
           <button
             type="button"
-            class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-500"
+            class="btn btn-secondary w-full"
             :disabled="isFrozen || !state.perfilHabilitado"
           >
             {{ accionLabel }}
@@ -50,6 +50,10 @@
         </div>
       </Card>
     </div>
+
+    <Card title="Actividad reciente">
+      <p class="text-sm text-slate-600">Aun no hay eventos registrados. Tu historial se ira completando.</p>
+    </Card>
 
     <Card v-if="isFrozen" title="Aviso">
       <p class="text-sm text-slate-600">
