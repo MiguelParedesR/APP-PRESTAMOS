@@ -25,18 +25,18 @@
     <div class="grid gap-4 md:grid-cols-3">
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Entrantes hoy</p>
-        <p class="mt-3 text-2xl font-semibold text-slate-900">12</p>
-        <p class="mt-2 text-xs text-slate-500">Ultimas 24h</p>
+        <p class="mt-3 text-2xl font-semibold text-slate-900">{{ todayCount }}</p>
+        <p class="mt-2 text-xs text-slate-500">Base actual</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-500">En evaluacion</p>
-        <p class="mt-3 text-2xl font-semibold text-slate-900">7</p>
+        <p class="mt-3 text-2xl font-semibold text-slate-900">{{ evaluacionCount }}</p>
         <p class="mt-2 text-xs text-slate-500">Cola actual</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Tiempo medio</p>
-        <p class="mt-3 text-2xl font-semibold text-slate-900">2.1h</p>
-        <p class="mt-2 text-xs text-slate-500">Resolucion promedio</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Antiguedad media</p>
+        <p class="mt-3 text-2xl font-semibold text-slate-900">{{ avgAgeLabel }}</p>
+        <p class="mt-2 text-xs text-slate-500">Desde creacion</p>
       </div>
     </div>
 
@@ -243,6 +243,47 @@ const filteredRequests = computed(() => {
   if (statusFilter.value === 'todos') return requests.value;
   return requests.value.filter((item) => item.estado === statusFilter.value);
 });
+
+const parseDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
+const isSameDay = (a, b) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const todayCount = computed(() => {
+  const today = new Date();
+  return requests.value.filter((item) => {
+    const createdAt = parseDate(item.created_at);
+    return createdAt && isSameDay(createdAt, today);
+  }).length;
+});
+
+const evaluacionCount = computed(
+  () => requests.value.filter((item) => item.estado === 'evaluacion').length
+);
+
+const avgAgeHours = computed(() => {
+  if (!requests.value.length) return 0;
+  const now = Date.now();
+  const ages = requests.value
+    .map((item) => {
+      const createdAt = parseDate(item.created_at);
+      if (!createdAt) return null;
+      return (now - createdAt.getTime()) / 36e5;
+    })
+    .filter((value) => value !== null);
+  if (!ages.length) return 0;
+  const avg = ages.reduce((sum, value) => sum + value, 0) / ages.length;
+  return Math.round(avg * 10) / 10;
+});
+
+const avgAgeLabel = computed(() => `${avgAgeHours.value.toFixed(1)}h`);
 
 function formatDate(value, withTime = false) {
   if (!value) return '-';

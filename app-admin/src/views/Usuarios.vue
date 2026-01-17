@@ -18,17 +18,17 @@
     <div class="grid gap-4 md:grid-cols-3">
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Total usuarios</p>
-        <p class="mt-3 text-2xl font-semibold text-slate-900">128</p>
+        <p class="mt-3 text-2xl font-semibold text-slate-900">{{ totalUsers }}</p>
         <p class="mt-2 text-xs text-slate-500">Base activa</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Admins</p>
-        <p class="mt-3 text-2xl font-semibold text-slate-900">4</p>
+        <p class="mt-3 text-2xl font-semibold text-slate-900">{{ adminUsers }}</p>
         <p class="mt-2 text-xs text-slate-500">Control operativo</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Nuevos</p>
-        <p class="mt-3 text-2xl font-semibold text-slate-900">9</p>
+        <p class="mt-3 text-2xl font-semibold text-slate-900">{{ recentUsers }}</p>
         <p class="mt-2 text-xs text-slate-500">Ultimos 7 dias</p>
       </div>
     </div>
@@ -81,12 +81,33 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { listUsers } from '../services/adminApi';
 
 const loading = ref(false);
 const errorMessage = ref('');
 const users = ref([]);
+
+const parseDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
+const totalUsers = computed(() => users.value.length);
+const adminUsers = computed(
+  () => users.value.filter((user) => user.is_admin).length
+);
+const recentUsers = computed(() => {
+  const now = Date.now();
+  return users.value.filter((user) => {
+    const createdAt = parseDate(user.created_at);
+    if (!createdAt) return false;
+    const diffDays = (now - createdAt.getTime()) / 86400000;
+    return diffDays <= 7;
+  }).length;
+});
 
 function formatDate(value) {
   if (!value) return '-';
