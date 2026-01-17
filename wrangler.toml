@@ -1,0 +1,33 @@
+name = "una-luca-worker"
+main = "worker/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# =========================
+# ENVIRONMENT: production
+# =========================
+[env.production]
+name = "una-luca-worker-prod"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE_KV"
+id = "b7965e19525543b2a7ee26b5fa34402e"
+
+# =========================
+# ENVIRONMENT: preview / dev
+# =========================
+[env.preview]
+name = "una-luca-worker-preview"
+
+[[env.preview.kv_namespaces]]
+binding = "CACHE_KV"
+id = "b148ba04da2042e495092be6042dff54"
+
+# =========================
+# VARIABLES (NO secrets)
+# =========================
+[vars]
+SUPABASE_URL = "https://kfbiiovahhoibgtfurxu.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmYmlpb3ZhaGhvaWJndGZ1cnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNzIzMDQsImV4cCI6MjA4Mzc0ODMwNH0.CWyoHT40Fat9EnTlFTCVrCF2RtnEFvRuPQxW9zMC08k"
+CACHE_TTL_SECONDS = "60"
+RATE_LIMIT_PER_MINUTE = "30"

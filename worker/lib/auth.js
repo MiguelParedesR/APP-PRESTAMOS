@@ -1,59 +1,34 @@
-﻿const encoder = new TextEncoder();
-
-function base64UrlDecode(input) {
-  const base64 = input.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(input.length / 4) * 4, '=');
-  return atob(base64);
-}
-
-function base64UrlToUint8Array(input) {
-  const decoded = base64UrlDecode(input);
-  const bytes = new Uint8Array(decoded.length);
-  for (let i = 0; i < decoded.length; i += 1) {
-    bytes[i] = decoded.charCodeAt(i);
-  }
-  return bytes;
-}
-
-function decodeJson(input) {
-  try {
-    const decoded = base64UrlDecode(input);
-    return JSON.parse(decoded);
-  } catch {
-    return null;
-  }
-}
-
 export function getBearerToken(request) {
   const header = request.headers.get('Authorization') || '';
   const match = header.match(/^Bearer\s+(.+)$/i);
   return match ? match[1] : null;
 }
 
-export async function verifyJwt(token, secret) {
-  if (!token || !secret) return null;
+async function fetchSupabaseUser(env, token) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    return { error: 'missing_supabase_env' };
+  }
 
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
+  const baseUrl = env.SUPABASE_URL.replace(/\/+$/, '');
+  const url = `${baseUrl}/auth/v1/user`;
 
-  const [headerPart, payloadPart, signaturePart] = parts;
-  const header = decodeJson(headerPart);
-  const payload = decodeJson(payloadPart);
+  const response = await fetch(url, {
+    headers: {
+      apikey: env.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`
+    }
+  });
 
-  if (!header || !payload || header.alg !== 'HS256') return null;
-  if (payload.exp && Date.now() / 1000 >= payload.exp) return null;
+  if (!response.ok) {
+    return { error: 'invalid_token' };
+  }
 
-  const data = `${headerPart}.${payloadPart}`;
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
-  const signature = base64UrlToUint8Array(signaturePart);
-  const valid = await crypto.subtle.verify('HMAC', key, signature, encoder.encode(data));
+  const data = await response.json().catch(() => null);
+  if (!data || !data.id) {
+    return { error: 'invalid_token' };
+  }
 
-  return valid ? payload : null;
+  return { user: data };
 }
 
 export async function requireAuth(request, env) {
@@ -62,14 +37,14 @@ export async function requireAuth(request, env) {
     return { ok: false, status: 401, error: 'missing_token' };
   }
 
-  const payload = await verifyJwt(token, env.SUPABASE_JWT_SECRET);
-  if (!payload) {
+  const { user, error } = await fetchSupabaseUser(env, token);
+  if (!user || error) {
     return { ok: false, status: 401, error: 'invalid_token' };
   }
 
-  if (!payload.sub) {
+  if (!user.id) {
     return { ok: false, status: 401, error: 'missing_subject' };
   }
 
-  return { ok: true, token, userId: payload.sub, payload };
+  return { ok: true, token, userId: user.id, payload: user };
 }

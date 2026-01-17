@@ -18,6 +18,13 @@ export async function createLoanRequest(request, env) {
     return jsonResponse({ status: 'error', error: auth.error }, auth.status);
   }
 
+  const payload = await request.json().catch(() => null);
+  const amount = payload ? Number(payload.monto) : NaN;
+  const termMonths = payload ? Number(payload.plazo_meses) : NaN;
+  if (!Number.isFinite(amount) || !Number.isFinite(termMonths)) {
+    return jsonResponse({ status: 'error', error: 'invalid_payload' }, 400);
+  }
+
   const rate = await checkRateLimit(env, auth.userId, 'loan_request');
   if (!rate.allowed) {
     await insertEvent(env, auth.token, auth.userId, 'rate_limited', 'loan_request').catch(() => null);
@@ -35,7 +42,7 @@ export async function createLoanRequest(request, env) {
     await setCacheJson(env, flagsKey, flags, FLAGS_CACHE_TTL);
   }
 
-  if (flags.loans_enabled === false) {
+  if (flags.loans_enabled !== true) {
     return jsonResponse({ status: 'error', error: 'loans_disabled' }, 403);
   }
 
@@ -66,16 +73,23 @@ export async function createLoanRequest(request, env) {
   }
 
   if (pending.data) {
-    return jsonResponse({ status: 'error', error: 'pending_request_exists' }, 409);
+    return jsonResponse({ status: 'error', error: 'loan_request_already_exists' }, 409);
   }
 
-  const insertResult = await insertLoanRequest(env, auth.token, auth.userId);
+  const insertResult = await insertLoanRequest(env, auth.token, auth.userId, amount, termMonths);
   if (insertResult.error) {
     return jsonResponse({ status: 'error', error: 'supabase_error' }, insertResult.error.status || 500);
   }
 
   const created = insertResult.data && insertResult.data[0] ? insertResult.data[0] : null;
-  await insertEvent(env, auth.token, auth.userId, 'loan_request_created', 'loan_request').catch(() => null);
+  if (!created) {
+    return jsonResponse({ status: 'error', error: 'supabase_error' }, 500);
+  }
 
-  return jsonResponse({ status: 'ok', data: { request: created } }, 201);
+  await insertEvent(env, auth.token, auth.userId, 'loan_request_created', 'Solicitud de préstamo creada', {
+    monto: amount,
+    plazo_meses: termMonths
+  }).catch(() => null);
+
+  return jsonResponse({ status: 'ok', data: { id: created.id, estado: created.estado } }, 201);
 }

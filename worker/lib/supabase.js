@@ -61,9 +61,22 @@ async function insertRow(env, token, table, body) {
   return supabaseRequest(env, token, url, { method: 'POST', body, prefer: 'return=representation' });
 }
 
+async function updateRow(env, token, table, params, body) {
+  const url = buildUrl(env, table, params);
+  if (!url) return { error: { status: 500, message: 'missing_supabase_env' } };
+  return supabaseRequest(env, token, url, { method: 'PATCH', body, prefer: 'return=representation' });
+}
+
+async function callRpc(env, token, fnName, body = {}) {
+  const baseUrl = getBaseUrl(env);
+  if (!baseUrl) return { error: { status: 500, message: 'missing_supabase_env' } };
+  const url = `${baseUrl}/rest/v1/rpc/${fnName}`;
+  return supabaseRequest(env, token, url, { method: 'POST', body });
+}
+
 export async function fetchProfileState(env, token, userId) {
   const { data, error } = await selectRows(env, token, 'profile_state', {
-    select: 'estado_perfil,nivel_actual,progreso_conducta,perfil_habilitado,updated_at',
+    select: 'user_id,estado,nivel,progreso,habilitado,last_review_at,updated_at',
     user_id: `eq.${userId}`,
     limit: '1'
   });
@@ -74,10 +87,11 @@ export async function fetchProfileState(env, token, userId) {
 
   return {
     data: {
-      estadoPerfil: row.estado_perfil,
-      nivelActual: row.nivel_actual,
-      progresoConducta: row.progreso_conducta,
-      perfilHabilitado: row.perfil_habilitado,
+      estadoPerfil: row.estado,
+      nivelActual: row.nivel,
+      progresoConducta: row.progreso,
+      perfilHabilitado: row.habilitado,
+      lastReviewAt: row.last_review_at,
       updatedAt: row.updated_at
     }
   };
@@ -85,7 +99,7 @@ export async function fetchProfileState(env, token, userId) {
 
 export async function fetchProfileEvents(env, token, userId, limit = 20) {
   return selectRows(env, token, 'profile_events', {
-    select: 'id,type,detail,created_at',
+    select: 'id,tipo,descripcion,metadata,created_at',
     user_id: `eq.${userId}`,
     order: 'created_at.desc',
     limit: String(limit)
@@ -94,9 +108,9 @@ export async function fetchProfileEvents(env, token, userId, limit = 20) {
 
 export async function fetchPendingLoan(env, token, userId) {
   const { data, error } = await selectRows(env, token, 'loan_requests', {
-    select: 'id,status',
+    select: 'id,estado',
     user_id: `eq.${userId}`,
-    status: 'eq.pending',
+    estado: 'in.(pendiente,evaluacion)',
     limit: '1'
   });
 
@@ -104,19 +118,51 @@ export async function fetchPendingLoan(env, token, userId) {
   return { data: data && data[0] ? data[0] : null };
 }
 
-export async function insertLoanRequest(env, token, userId) {
+export async function insertLoanRequest(env, token, userId, amount, termMonths) {
   return insertRow(env, token, 'loan_requests', {
     user_id: userId,
-    status: 'pending'
+    monto_solicitado: amount,
+    plazo_meses: termMonths,
+    estado: 'pendiente'
   });
 }
 
-export async function insertEvent(env, token, userId, type, detail) {
+export async function insertEvent(env, token, userId, type, detail, metadata = {}) {
   return insertRow(env, token, 'profile_events', {
     user_id: userId,
-    type,
-    detail
+    tipo: type,
+    descripcion: detail,
+    metadata
   });
+}
+
+export async function insertAuditLog(env, token, payload) {
+  return insertRow(env, token, 'audit_logs', payload);
+}
+
+export async function isAdmin(env, token) {
+  return callRpc(env, token, 'is_admin', {});
+}
+
+export async function createLoanFromRequest(env, token, loanRequestId) {
+  return callRpc(env, token, 'create_loan_from_request', {
+    loan_request_id: loanRequestId
+  });
+}
+
+export async function fetchLoanRequestById(env, token, loanId) {
+  const { data, error } = await selectRows(env, token, 'loan_requests', {
+    select: 'id,user_id,monto_solicitado,plazo_meses,estado,created_at',
+    id: `eq.${loanId}`,
+    limit: '1'
+  });
+
+  if (error) return { error };
+  return { data: data && data[0] ? data[0] : null };
+}
+
+export async function updateLoanRequestStatus(env, token, loanId, nextStatus) {
+  return updateRow(env, token, 'loan_requests', { id: `eq.${loanId}` }, { estado: nextStatus });
 }
 
 export async function fetchSystemFlags(env, token) {
